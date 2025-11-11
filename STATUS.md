@@ -1,7 +1,7 @@
 # Frank's Drum V1 Project Status
 
 ## Current Status
-Initial version created from Claude_Drums_V2. Repository set up and code ready for testing on NodeMCU ESP8266.
+Tempo range adjusted. Ready for testing on NodeMCU ESP8266.
 
 ## What We've Done
 1. ✅ Copied code from Claude_Drums_V2/Claude_Drums_V2.ino
@@ -11,6 +11,7 @@ Initial version created from Claude_Drums_V2. Repository set up and code ready f
 5. ✅ Pushed initial code to GitHub
 6. ✅ Created README.md with project documentation
 7. ✅ Created STATUS.md for project tracking
+8. ✅ Adjusted tempo range: minTempo 46→30 BPM, maxTempo 145→150 BPM
 
 ## Next Steps
 1. Upload code to NodeMCU ESP8266 and test
@@ -46,8 +47,8 @@ arduino-cli upload -p /dev/tty.usbserial-XXXX --fqbn esp8266:esp8266:nodemcuv2 .
 - May need to press FLASH button during upload
 
 ### Key Parameters (in code)
-- **Tempo Range**: 46-145 BPM (lines 30-32)
-- **Default Tempo**: 95 BPM (calculated as average)
+- **Tempo Range**: 30-150 BPM (lines 30-32)
+- **Default Tempo**: 90 BPM (calculated as average)
 - **Min Pulse Width**: 7500 μs (line 38)
 - **Max Pulse Width**: 20000 μs (line 39)
 - **Pedal Voltage Range**: 850-2777 mV (lines 40-41)

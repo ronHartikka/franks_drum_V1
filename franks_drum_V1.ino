@@ -27,8 +27,8 @@ Adafruit_ADS1115 ads;
 volatile bool encoderFlag = false;
 volatile byte encoderState = 0;
 
-long minTempo = 46; // minimum tempo allowed
-long maxTempo = 145; // maximum tempo allowed
+long minTempo = 30; // minimum tempo allowed
+long maxTempo = 150; // maximum tempo allowed
 long defaultTempo = long (maxTempo + minTempo)/2; // default Tempo
 long Tempo = defaultTempo; // start off at default
 long encoderPosition = Tempo; // copy to encoder position
