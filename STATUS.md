@@ -14,6 +14,7 @@ Successfully uploaded and tested on NodeMCU ESP8266. Tempo range 30-150 BPM work
 8. ✅ Adjusted tempo range: minTempo 46→30 BPM, maxTempo 145→150 BPM
 9. ✅ Compiled and uploaded to NodeMCU ESP8266 via /dev/tty.SLAB_USBtoUART
 10. ✅ Verified working - serial output confirmed correct operation
+11. ✅ Tested minTempo with stopwatch - confirmed accurate at 30 BPM
 
 ## Next Steps
 1. Test encoder functionality and tempo changes in real use
