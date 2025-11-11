@@ -1,7 +1,7 @@
 # Frank's Drum V1 Project Status
 
 ## Current Status
-Tempo range adjusted. Ready for testing on NodeMCU ESP8266.
+Successfully uploaded and tested on NodeMCU ESP8266. Tempo range 30-150 BPM working correctly.
 
 ## What We've Done
 1. ✅ Copied code from Claude_Drums_V2/Claude_Drums_V2.ino
@@ -12,14 +12,15 @@ Tempo range adjusted. Ready for testing on NodeMCU ESP8266.
 6. ✅ Created README.md with project documentation
 7. ✅ Created STATUS.md for project tracking
 8. ✅ Adjusted tempo range: minTempo 46→30 BPM, maxTempo 145→150 BPM
+9. ✅ Compiled and uploaded to NodeMCU ESP8266 via /dev/tty.SLAB_USBtoUART
+10. ✅ Verified working - serial output confirmed correct operation
 
 ## Next Steps
-1. Upload code to NodeMCU ESP8266 and test
-2. Calibrate tempo range if needed (currently 46-145 BPM)
-3. Test encoder functionality and tempo changes
-4. Test pedal input and pulse width modulation
-5. Fine-tune pulse width parameters (currently 7500-20000 μs)
-6. Test button toggle for pedal enable/disable
+1. Test encoder functionality and tempo changes in real use
+2. Test pedal input and pulse width modulation
+3. Fine-tune pulse width parameters if needed (currently 7500-20000 μs)
+4. Test button toggle for pedal enable/disable
+5. Further calibration based on real-world testing
 
 ## Important Info
 
