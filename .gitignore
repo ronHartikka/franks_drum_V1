@@ -1,0 +1,22 @@
+# Arduino build files
+*.hex
+*.eep
+*.elf
+*.map
+*.sym
+*.lss
+*.lst
+
+# IDE files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Build directories
+build/
+.build/
+
+# PlatformIO
+.pio/
+.vscode/
