@@ -51,6 +51,10 @@ byte lastEncoded = 0;
 
 // Button variables
 volatile bool buttonFlag = false;
+bool isPulsesEnabled = true;  // whether drum makes sound
+unsigned long buttonPressTime = 0;  // track when button pressed
+bool buttonCurrentlyPressed = false;  // track button state
+const unsigned long LONG_PRESS_THRESHOLD = 500;  // milliseconds
 
 void setup() {
   Serial.begin(115200);
@@ -88,8 +92,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ENCODER_CLK), encoderISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(ENCODER_DT), encoderISR, CHANGE);
 
-  // Attach interrupt to button pin (trigger on falling edge - button press)
-  attachInterrupt(digitalPinToInterrupt(ENCODER_SW), buttonISR, FALLING);
+  // Attach interrupt to button pin (trigger on any change - press and release)
+  attachInterrupt(digitalPinToInterrupt(ENCODER_SW), buttonISR, CHANGE);
 
   Serial.println("Rotary Encoder Ready (with button interrupt - hardware debounced)");
   Serial.print("Tempo: ");
@@ -142,10 +146,12 @@ void loop() {
       PW = calculatePulseWidth(pedal_mV);
     }
 
-    // Turn on both LED and solenoid
+    // Turn on LED (always) and solenoid (only if pulses enabled)
     digitalWrite(BUILTIN_LED_PIN, LOW); // Turn LED on (active LOW)
-    //digitalWrite(SOLENOID_PIN, HIGH); // Turn solenoid on (assuming active HIGH)
-    digitalWrite(SOLENOID_PIN, LOW); // Turn solenoid on (assuming active HIGH)
+    if (isPulsesEnabled) {
+      //digitalWrite(SOLENOID_PIN, HIGH); // Turn solenoid on (assuming active HIGH)
+      digitalWrite(SOLENOID_PIN, LOW); // Turn solenoid on (assuming active HIGH)
+    }
     ledState = true;
     ledOnTime = micros(); // Use micros for microsecond precision
     lastBeatTime = currentTime;
@@ -161,8 +167,10 @@ void loop() {
   // Turn off LED and solenoid after PW microseconds
   if (ledState && (micros() - ledOnTime >= PW)) {
     digitalWrite(BUILTIN_LED_PIN, HIGH); // Turn LED off (active LOW)
-    //digitalWrite(SOLENOID_PIN, LOW); // Turn solenoid off
-    digitalWrite(SOLENOID_PIN, HIGH); // Turn solenoid off
+    if (isPulsesEnabled) {
+      //digitalWrite(SOLENOID_PIN, LOW); // Turn solenoid off
+      digitalWrite(SOLENOID_PIN, HIGH); // Turn solenoid off
+    }
     ledState = false;
   }
 
@@ -176,21 +184,41 @@ void ICACHE_RAM_ATTR encoderISR() {
   encoderFlag = true;
 }
 
-// Button ISR - just set flag (hardware debounced)
+// Button ISR - track press and release times (hardware debounced)
 void ICACHE_RAM_ATTR buttonISR() {
-  buttonFlag = true;
+  if (digitalRead(ENCODER_SW) == LOW) {
+    // Button pressed down
+    buttonPressTime = millis();
+    buttonCurrentlyPressed = true;
+  } else {
+    // Button released - set flag for processing
+    buttonCurrentlyPressed = false;
+    buttonFlag = true;
+  }
 }
 
-// Function called when button is pressed - customize this for your needs
+// Function called when button is released - handles short/long press
 void onButtonPressed() {
-  Serial.println("Button Pressed!");
-  pedalEnable = !pedalEnable;
-  // Add your custom button handling code here
-  // Examples:
-  // - Toggle a mode
-  // - Save current position
-  // - Change encoder sensitivity
-  // - Trigger an action
+  unsigned long pressDuration = millis() - buttonPressTime;
+
+  if (pressDuration >= LONG_PRESS_THRESHOLD) {
+    // Long press: toggle pulses (silence/enable drum)
+    isPulsesEnabled = !isPulsesEnabled;
+    Serial.print("Long press - Pulses ");
+    Serial.println(isPulsesEnabled ? "ENABLED" : "DISABLED");
+  } else {
+    // Short press:
+    if (!isPulsesEnabled) {
+      // If currently silent, re-enable pulses (keep pedalEnable state)
+      isPulsesEnabled = true;
+      Serial.println("Short press - Pulses RE-ENABLED");
+    } else {
+      // If pulses enabled, toggle pedal control (original behavior)
+      pedalEnable = !pedalEnable;
+      Serial.print("Short press - Pedal control ");
+      Serial.println(pedalEnable ? "ENABLED" : "DISABLED (hold last PW)");
+    }
+  }
 }
 
 // Process encoder state in main loop - 1 count per mechanical detent
