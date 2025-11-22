@@ -1,6 +1,37 @@
 # Frank's Drum V1 Project Status
 
-## Current Status
+## Current Status - 2025-11-18
+**ISSUE**: Brown-out cycle on standalone power. System boots only when USB connected.
+
+### Recent Changes (2025-11-18)
+- Changed minPulseMicroseconds: 7500 → 0 → 7500 μs (line 38)
+- Changed pedal voltage range: 850-2777 mV → 200-3000 mV (lines 40-41)
+- Added cutoff: pedal voltage >= 3000 mV → no pulse (PW = 0, no GPIO toggle)
+- Initialized PW = 0 to prevent startup pulses
+- Added ADS1115 startup stabilization (100ms delay + dummy reads)
+
+### Boot Issue Problem
+**Symptom**: MCU enters brown-out reboot cycle when powered standalone with solenoid connected.
+- Solenoid energizes during boot → draws current → 5V regulator browns out → reboot → repeat
+- **Root cause**: D3 (GPIO0) is a **boot mode pin** - must be HIGH during boot
+- Solenoid driver may pull GPIO0 LOW during power-up, preventing normal boot
+
+**Root Cause Found (2025-11-22)**:
+- Setup code had `digitalWrite(SOLENOID_PIN, LOW)` with wrong comment "Solenoid off"
+- Circuit is ACTIVE LOW: D3 HIGH = solenoid OFF, D3 LOW = solenoid ON
+- So setup() was actually turning solenoid ON, causing brownout when plugged in
+- **Fix**: Changed to `digitalWrite(SOLENOID_PIN, HIGH)` in setup()
+
+**Current Behavior**:
+- Boots standalone with solenoid connected (even if solenoid plugged in before 24V)
+- One weak drum beat during boot (GPIO0 floats LOW during bootloader)
+- After boot, works correctly
+
+**Optional Future Improvement**:
+- Add external 10K pull-up resistor from D3 to 3.3V to prevent boot-time pulse, OR
+- Move solenoid control to non-boot-critical GPIO (D1/D2/D4)
+
+## Previous Status
 Successfully uploaded and tested on NodeMCU ESP8266. Tempo range 30-150 BPM working correctly.
 
 ## What We've Done

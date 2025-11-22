@@ -37,10 +37,10 @@ byte pedalEnable = true; // if true, set solenoid PW according to pedal
 // Metronome variables
 int minPulseMicroseconds = 7500; // minimum PW in microseconds
 int maxPulseMicroseconds = 20000; // maximum PW in microseconds
-float maxPedal_mV = 2777;  // max expected differential reading from ADS1115 differential (channel 0 is HI)
-float minPedal_mV = 850; // min expected differential reading from ADS1115
+float maxPedal_mV = 3000;  // max expected differential reading from ADS1115 differential (channel 0 is HI)
+float minPedal_mV = 200; // min expected differential reading from ADS1115
 float pedal_mV = maxPedal_mV; // current pedal reading in millivolts
-int PW = minPulseMicroseconds; // pulse width in microseconds
+int PW = 0; // pulse width in microseconds (start at 0 to prevent startup pulses)
 unsigned long lastBeatTime = 0;
 unsigned long beatInterval = 0;
 bool ledState = false;
@@ -57,6 +57,16 @@ bool buttonCurrentlyPressed = false;  // track button state
 const unsigned long LONG_PRESS_THRESHOLD = 500;  // milliseconds
 
 void setup() {
+  // BOOT DIAGNOSTIC: Blink LED 3 times fast to show we reached setup()
+  pinMode(BUILTIN_LED_PIN, OUTPUT);
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(BUILTIN_LED_PIN, LOW);  // LED on (active LOW)
+    delay(100);
+    digitalWrite(BUILTIN_LED_PIN, HIGH); // LED off
+    delay(100);
+  }
+  delay(500);  // pause before normal operation
+
   Serial.begin(115200);
 
   // Initialize ADS1115
@@ -69,12 +79,19 @@ void setup() {
   ads.setGain(GAIN_ONE);  // 1x gain +/- 4.096V  1 bit = 0.125mV
   ads.startADCReading(ADS1X15_REG_CONFIG_MUX_DIFF_0_1, /*continuous=*/true);
 
+  // Give ADS1115 time to stabilize and do dummy reads to clear stale data
+  delay(100);
+  ads.getLastConversionResults();  // discard first reading
+  delay(10);
+  pedal_mV = readPedalVoltage();   // get fresh reading
+  PW = calculatePulseWidth(pedal_mV);  // calculate initial PW
+
   // Configure LED and solenoid pins as outputs
   pinMode(BUILTIN_LED_PIN, OUTPUT);
   digitalWrite(BUILTIN_LED_PIN, HIGH); // LED off (built-in LED is active LOW)
 
   pinMode(SOLENOID_PIN, OUTPUT);
-  digitalWrite(SOLENOID_PIN, LOW); // Solenoid off (assuming active HIGH)
+  digitalWrite(SOLENOID_PIN, HIGH); // Solenoid off (active LOW: HIGH = off)
 
   // Calculate initial beat interval (60000 ms per minute / BPM)
   beatInterval = 60000 / Tempo;
@@ -146,14 +163,17 @@ void loop() {
       PW = calculatePulseWidth(pedal_mV);
     }
 
-    // Turn on LED (always) and solenoid (only if pulses enabled)
-    digitalWrite(BUILTIN_LED_PIN, LOW); // Turn LED on (active LOW)
-    if (isPulsesEnabled) {
-      //digitalWrite(SOLENOID_PIN, HIGH); // Turn solenoid on (assuming active HIGH)
-      digitalWrite(SOLENOID_PIN, LOW); // Turn solenoid on (assuming active HIGH)
+    // Only turn on LED and solenoid if PW > 0 (pedal voltage below threshold)
+    if (PW > 0) {
+      // Turn on LED (always) and solenoid (only if pulses enabled)
+      digitalWrite(BUILTIN_LED_PIN, LOW); // Turn LED on (active LOW)
+      if (isPulsesEnabled) {
+        //digitalWrite(SOLENOID_PIN, HIGH); // Turn solenoid on (assuming active HIGH)
+        digitalWrite(SOLENOID_PIN, LOW); // Turn solenoid on (assuming active HIGH)
+      }
+      ledState = true;
+      ledOnTime = micros(); // Use micros for microsecond precision
     }
-    ledState = true;
-    ledOnTime = micros(); // Use micros for microsecond precision
     lastBeatTime = currentTime;
 
     // Debug output
@@ -252,6 +272,11 @@ float readPedalVoltage() {
 
 // Calculate pulse width based on pedal voltage (linear mapping)
 int calculatePulseWidth(float pedal_mV) {
+  // If voltage above max threshold, no pulse
+  if (pedal_mV >= maxPedal_mV) {
+    return 0;
+  }
+
   // Constrain input to expected range
   pedal_mV = constrain(pedal_mV, minPedal_mV, maxPedal_mV);
 
